@@ -59,6 +59,16 @@ const FEATURES: Pick<
     enMenu: false,
     orden: 5,
   },
+  {
+    codigo: FeatureCodigo.ACCIDENTES,
+    nombre: 'Accidentes',
+    descripcion:
+      'Informe de investigación de accidentes e incidentes por voz (RSE-04-00-02)',
+    icono: 'personal-injury',
+    ruta: '/accidentes',
+    enMenu: false,
+    orden: 6,
+  },
 ];
 
 /** Datos base idempotentes: catálogo de features y el super administrador. */

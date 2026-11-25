@@ -133,8 +133,8 @@ Reglas:
 CATÁLOGO DE PELIGROS (código y nombre):
 ${LISTA_PELIGROS}`;
 
-/** Datos que la auditoría ya conoce; la IA no debe pedirlos. */
-export function mensajeMatriz(
+/** Datos que la auditoría ya conoce (la IA no debe pedirlos) + la transcripción del dictado. */
+export function mensajeDictado(
   transcripcion: string,
   conocidos: Record<string, string>,
 ): string {
@@ -153,3 +153,33 @@ export function mensajeMatriz(
 
 export const PROMPT_TRANSCRIPCION =
   'Dictado técnico de seguridad laboral en español: puesto de trabajo, factores de seguridad, físicos, químicos, biológicos, ergonómicos y psicosociales; probabilidad baja, media o alta; ligeramente dañino, dañino, extremadamente dañino; trivial, tolerable, moderado, importante, intolerable; actividades rutinarias, EPP, LOTO, ATEX, RULA, REBA, OWAS, PVD, arnés, línea de vida, resguardo, montacargas, andamio.';
+
+export const INSTRUCCIONES_ACCIDENTE = `${ROL_BASE}
+
+TAREA: Recibes la transcripción de un dictado en el que un técnico de SST relata la investigación de un accidente o incidente de trabajo. Con ella llenas el INFORME AMPLIATORIO DE INVESTIGACIÓN DE ACCIDENTES E INCIDENTES (formato RSE-04-00-02). La investigación tiene fines exclusivamente preventivos, no de determinar responsabilidades legales.
+
+EXCEPCIÓN A LA REGLA DE DATOS PERSONALES: este informe sí identifica al investigador, a los trabajadores accidentados y a las personas entrevistadas. Registra nombres, cédulas, fechas de nacimiento, ocupaciones y lesiones SOLO tal como el técnico los dictó (corrige únicamente mayúsculas y tildes evidentes). Nunca los inventes, completes ni deduzcas: si no se dijeron, déjalos vacíos.
+
+Reglas:
+- Llena SOLO con lo que el técnico dijo o con el contexto. Si un dato no se dijo, deja "" (texto) o [] (listas) y agrégalo a "faltantes".
+- tipoEvento: "accidente" si hubo lesión o daño a la salud; "incidente" si no la hubo.
+- investigadorNombre / investigadorCedula / investigadorCompetencia: solo si el técnico dice quién investiga, su cédula o su formación (p. ej. "Magíster en Seguridad y Prevención de Riesgos Laborales"). "" si no lo dice (el sistema usa el perfil del usuario).
+- fechaInvestigacion, fecha: formato AAAA-MM-DD. Si dicen "hoy", "ayer" o un día de la semana, calcúlalo con la fecha actual que viene en el contexto. hora: HH:MM en 24 horas ("once y veinticinco de la mañana" → "11:25").
+- entrevistados: un elemento por persona entrevistada (nombre y, si se dijo, su rol: "Juan Pérez (testigo)").
+- tecnicas: técnicas y aparatos usados (observación directa, entrevista, revisión de cámaras, fotografías, reconstrucción…).
+- trabajadores: uno por trabajador accidentado. resultado = la lesión o daño para ese trabajador ("Sin lesión" en un incidente si así se dijo).
+- lugar: área o sitio exacto del suceso.
+- introduccion: una sola frase formal: "Por medio del presente me permito dar a conocer el informe ampliatorio del {accidente|incidente} ocurrido en el: “{LUGAR}” {en la tarea dicha} el día {fecha en palabras}". Usa solo datos dichos.
+- consecuencia: la lesión o daño principal, breve y en mayúsculas como diagnóstico (p. ej. "FRACTURA NO DESPLAZADA DE CÚBITO DEL ANTEBRAZO IZQUIERDO"). "" si no se dijo.
+- descripcion: relato cronológico, formal y en tercera persona de cómo ocurrió y qué pasó después (atención médica, traslados, diagnósticos, seguimiento), con todos los hechos dictados y sin agregar hechos nuevos. Párrafos separados por salto de línea.
+- Causalidad (método de causalidad: causas directas, indirectas y básicas):
+  - actos: actos subestándar que causaron el suceso; condiciones: condiciones subestándar. Si alguno de los nombres del catálogo de abajo describe lo dicho, usa ese nombre exacto; si no, una frase corta. Si el técnico dice que no hay o no se determina, usa ["No se determina"].
+  - factoresTrabajador (factores personales: distracción, falta de conocimiento, fatiga, motivación…) y factoresTrabajo (factores del trabajo: supervisión, diseño, mantenimiento, procedimientos, compras…). ["No se determina"] si así se dijo.
+  - causasBasicas: párrafo con la causa raíz que explica el suceso, según lo dicho.
+  - Si el técnico no habló de causas, deja las listas vacías y agrégalas a faltantes; no las deduzcas.
+- acciones: acciones correctivas dictadas, una por elemento, redactadas como acción concreta. Si el técnico pide que propongas, propón 2 a 4 según la jerarquía de controles y empieza cada una con "Propuesta IA:".
+- faltantes: un elemento por cada dato obligatorio que el dictado NO cubrió y que tampoco viene en "Datos ya conocidos". mensaje: una frase al técnico, en segunda persona, que diga qué faltó y que lo complete manualmente.
+- resumen: una o dos frases con lo esencial (qué pasó, a quién y la consecuencia).`;
+
+export const PROMPT_TRANSCRIPCION_ACCIDENTE =
+  'Dictado de investigación de un accidente de trabajo en español: investigador, cédula, personas entrevistadas, trabajador accidentado, fecha de nacimiento, ocupación, lugar, fecha y hora, fractura, contusión, esguince, laceración, atrapamiento, aplastamiento, caída, IESS, departamento médico, actos subestándar, condiciones subestándar, factores del trabajador, factores del trabajo, causas básicas, acciones correctivas, ART, EPP, montacargas, tolva.';

@@ -121,10 +121,10 @@ export class ReportesService {
   async registrar(u: UsuarioSesion, id: number, dto: RegistrarReporteDto) {
     const r = await this.repo.findOne({
       where: { id },
-      relations: { empresa: true },
+      relations: { empresa: true, creadoPor: true },
     });
     if (!r) throw new NotFoundException('Reporte no encontrado');
-    this.empresas.asegurarAcceso(u, r.empresa.id);
+    this.empresas.asegurarRegistro(u, r, 'Reporte no encontrado');
     if (r.estado === EstadoAnalisis.REGISTRADO)
       throw new BadRequestException('El reporte ya fue registrado');
     const { area } = await this.empresas.contexto(r.empresa.id, dto.areaId);
@@ -168,6 +168,7 @@ export class ReportesService {
       where: {
         empresa: { id: empresaId },
         estado: EstadoAnalisis.REGISTRADO,
+        ...this.empresas.autoria(u),
         ...((a || b) && {
           registradoEn:
             a && b
@@ -186,7 +187,7 @@ export class ReportesService {
   async obtener(u: UsuarioSesion, id: number) {
     const r = await this.repo.findOne({ where: { id }, relations: RELACIONES });
     if (!r) throw new NotFoundException('Reporte no encontrado');
-    this.empresas.asegurarAcceso(u, r.empresa.id);
+    this.empresas.asegurarRegistro(u, r, 'Reporte no encontrado');
     return r;
   }
 }

@@ -66,3 +66,8 @@ export class ActualizarMatrizDto {
   @IsOptional() @IsArray() @ArrayMaxSize(100) peligros?: unknown[];
   @IsOptional() @IsArray() @ArrayMaxSize(100) planAccion?: unknown[];
 }
+
+/** PATCH /accidentes/:id — el informe completo o las secciones editadas (se normaliza en el servicio). */
+export class ActualizarInformeDto {
+  @IsObject() datos: Record<string, unknown>;
+}

@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AnalisisModule } from './analisis/analisis.module';
 import { AppController } from './app.controller';
+import { ArchivoModule } from './archivo/archivo.module';
 import { AuthModule } from './auth/auth.module';
 import { ClasificacionesModule } from './clasificaciones/clasificaciones.module';
 import { CloudinaryModule } from './cloudinary/cloudinary.module';
@@ -46,6 +47,7 @@ import { UsuariosModule } from './usuarios/usuarios.module';
     ClasificacionesModule,
     AnalisisModule,
     PermisosModule,
+    ArchivoModule,
     LegalModule,
   ],
   controllers: [AppController],

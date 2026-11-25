@@ -80,13 +80,14 @@ export class OpenAiService {
     audio: Buffer,
     nombreArchivo: string,
     mime: string,
+    prompt = PROMPT_TRANSCRIPCION,
   ): Promise<string> {
     try {
       const r = await this.api.audio.transcriptions.create({
         file: await toFile(audio, nombreArchivo, { type: mime }),
         model: this.modeloTranscripcion,
         language: 'es',
-        prompt: PROMPT_TRANSCRIPCION,
+        prompt,
       });
       return r.text.trim();
     } catch (e) {

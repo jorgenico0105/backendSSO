@@ -1,10 +1,10 @@
 import { Controller, Get } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { SoloAdmin } from '../common/decorators';
+import { Gestion } from '../common/decorators';
 import { Feature } from './feature.entity';
 
-@SoloAdmin()
+@Gestion()
 @Controller('features')
 export class FeaturesController {
   constructor(

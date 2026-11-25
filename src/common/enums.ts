@@ -1,5 +1,9 @@
 export enum Perfil {
+  /** Administrador general: ve y gestiona todas las empresas. */
   ADMINISTRADOR = 'ADMINISTRADOR',
+  /** Administra usuarios, áreas y puestos solo de sus empresas asignadas. */
+  ADMIN_EMPRESA = 'ADMIN_EMPRESA',
+  /** Técnico de campo: solo ve los registros que él mismo creó. */
   USUARIO = 'USUARIO',
 }
 
@@ -37,6 +41,7 @@ export enum FeatureCodigo {
   VOZ = 'VOZ',
   ERGO = 'ERGO',
   PERMISOS = 'PERMISOS',
+  ACCIDENTES = 'ACCIDENTES',
 }
 
 /** Matriz de riesgos: BORRADOR mientras falten datos por llenar a mano. */

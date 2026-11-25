@@ -41,7 +41,7 @@ export class PermisosService {
   async listar(u: UsuarioSesion, empresaId: number) {
     this.empresas.asegurarAcceso(u, empresaId);
     return this.repo.find({
-      where: { empresa: { id: empresaId } },
+      where: { empresa: { id: empresaId }, ...this.empresas.autoria(u) },
       relations: RELACIONES,
       order: { createdAt: 'DESC' },
       take: 200,
@@ -51,7 +51,7 @@ export class PermisosService {
   async obtener(u: UsuarioSesion, id: number) {
     const p = await this.repo.findOne({ where: { id }, relations: RELACIONES });
     if (!p) throw new NotFoundException('Permiso no encontrado');
-    this.empresas.asegurarAcceso(u, p.empresa.id);
+    this.empresas.asegurarRegistro(u, p, 'Permiso no encontrado');
     return p;
   }
 

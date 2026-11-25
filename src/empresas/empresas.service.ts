@@ -11,7 +11,7 @@ import { AnalisisImagen } from '../analisis/entities/analisis-imagen.entity';
 import { AnalisisVideo } from '../analisis/entities/analisis-video.entity';
 import { MatrizRiesgo } from '../analisis/entities/matriz-riesgo.entity';
 import { CloudinaryService } from '../cloudinary/cloudinary.service';
-import { esAdmin, UsuarioSesion } from '../common/decorators';
+import { esAdmin, soloPropios, UsuarioSesion } from '../common/decorators';
 import { EstadoAnalisis } from '../common/enums';
 import { Area } from './area.entity';
 import {
@@ -54,6 +54,25 @@ export class EmpresasService {
     }
   }
 
+  /** Filtro `where` por autor: el perfil USUARIO solo ve lo que él creó. */
+  autoria(u: UsuarioSesion) {
+    return soloPropios(u) ? { creadoPor: { id: u.id } } : {};
+  }
+
+  /**
+   * Acceso a un registro ya cargado (con `empresa` y `creadoPor`). Uno ajeno responde 404,
+   * igual que uno inexistente, para no revelar que existe.
+   */
+  asegurarRegistro(
+    u: UsuarioSesion,
+    r: { empresa: { id: number }; creadoPor?: { id: number } | null },
+    noEncontrado: string,
+  ) {
+    this.asegurarAcceso(u, r.empresa.id);
+    if (soloPropios(u) && r.creadoPor?.id !== u.id)
+      throw new NotFoundException(noEncontrado);
+  }
+
   /** Empresas visibles para el usuario, con áreas, puestos y resumen de actividad. */
   async listar(u: UsuarioSesion, incluirInactivas = false) {
     if (!esAdmin(u) && !u.empresaIds.length) return [];
@@ -69,7 +88,11 @@ export class EmpresasService {
         puestos: { nombre: 'ASC' },
       },
     });
-    const resumen = await this.resumen(empresas.map((e) => e.id));
+    // El resumen del Hub también cuenta solo lo propio para el perfil USUARIO.
+    const resumen = await this.resumen(
+      empresas.map((e) => e.id),
+      soloPropios(u) ? u.id : undefined,
+    );
     return empresas.map((e) => ({
       ...e,
       areas: e.areas.filter((a) => a.activo),
@@ -94,7 +117,10 @@ export class EmpresasService {
     return e;
   }
 
-  private async resumen(ids: number[]): Promise<Map<number, ResumenEmpresa>> {
+  private async resumen(
+    ids: number[],
+    autorId?: number,
+  ): Promise<Map<number, ResumenEmpresa>> {
     const mapa = new Map<number, ResumenEmpresa>();
     if (!ids.length) return mapa;
     const hoy = new Date();
@@ -116,6 +142,7 @@ export class EmpresasService {
       )
       .where('r.empresa_id IN (:...ids)', { ids })
       .andWhere('r.estado = :estado', { estado: EstadoAnalisis.REGISTRADO })
+      .andWhere(autorId ? 'r.creado_por_id = :autorId' : '1=1', { autorId })
       .setParameters({ hoy, ayer, hace30 })
       .groupBy('r.empresa_id')
       .getRawMany<{
@@ -132,6 +159,9 @@ export class EmpresasService {
           .select('a.empresa_id', 'empresaId')
           .addSelect('MAX(a.created_at)', 'ultima')
           .where('a.empresa_id IN (:...ids)', { ids })
+          .andWhere(autorId ? 'a.creado_por_id = :autorId' : '1=1', {
+            autorId,
+          })
           .groupBy('a.empresa_id')
           .getRawMany<{ empresaId: number; ultima: Date | string }>(),
       ),

@@ -122,7 +122,7 @@ export class ErgoService {
   async listar(u: UsuarioSesion, empresaId: number) {
     this.empresas.asegurarAcceso(u, empresaId);
     const lista = await this.repo.find({
-      where: { empresa: { id: empresaId } },
+      where: { empresa: { id: empresaId }, ...this.empresas.autoria(u) },
       relations: RELACIONES,
       order: { createdAt: 'DESC' },
       take: 50,
@@ -137,7 +137,7 @@ export class ErgoService {
   async obtener(u: UsuarioSesion, id: number) {
     const r = await this.repo.findOne({ where: { id }, relations: RELACIONES });
     if (!r) throw new NotFoundException('Evaluación no encontrada');
-    this.empresas.asegurarAcceso(u, r.empresa.id);
+    this.empresas.asegurarRegistro(u, r, 'Evaluación no encontrada');
     if (r.estado !== EstadoAnalisis.PROCESANDO || !r.jobId) return r;
 
     try {

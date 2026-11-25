@@ -14,7 +14,7 @@ import { EmpresasService } from '../empresas/empresas.service';
 import {
   contextoEmpresa,
   INSTRUCCIONES_MATRIZ,
-  mensajeMatriz,
+  mensajeDictado,
 } from '../ia/agente-sst.prompts';
 import { OpenAiService, texto } from '../ia/openai.service';
 import { Usuario } from '../usuarios/usuario.entity';
@@ -32,6 +32,33 @@ import {
   normalizarPeligros,
   sincronizarPlan,
 } from './matriz/matriz';
+
+/** Formatos que acepta la transcripción (la extensión del nombre decide cómo se lee). */
+const EXT_AUDIO = new Set([
+  'm4a',
+  'mp4',
+  'mp3',
+  'mpeg',
+  'mpga',
+  'wav',
+  'ogg',
+  'oga',
+  'opus',
+  'webm',
+  'flac',
+]);
+
+const extension = (nombre?: string) =>
+  /\.([a-z0-9]{2,5})$/i.exec(nombre ?? '')?.[1].toLowerCase() ?? '';
+
+/** Las notas de voz de WhatsApp (.opus/.oga) son Ogg: se envían como .ogg para que se lean. */
+function nombreParaTranscribir(nombre?: string) {
+  const ext = extension(nombre);
+  if (!ext) return 'audio.m4a';
+  return ext === 'opus' || ext === 'oga'
+    ? nombre!.replace(/\.[a-z0-9]+$/i, '.ogg')
+    : nombre!;
+}
 
 const RELACIONES = {
   empresa: true,
@@ -59,12 +86,14 @@ export class VozService {
     return { factores: FACTORES, peligros: CATALOGO_PELIGROS };
   }
 
-  transcribir(archivo: Express.Multer.File) {
+  /** Valida y transcribe un audio; `prompt` orienta el vocabulario (por defecto, el de la matriz). */
+  transcribir(archivo: Express.Multer.File, prompt?: string) {
     this.validarAudio(archivo);
     return this.ia.transcribir(
       archivo.buffer,
-      archivo.originalname || 'audio.m4a',
+      nombreParaTranscribir(archivo.originalname),
       archivo.mimetype,
+      prompt,
     );
   }
 
@@ -137,7 +166,7 @@ export class VozService {
       `${INSTRUCCIONES_MATRIZ}\n\n${contextoEmpresa(empresa, area, puesto)}`,
       [
         texto(
-          mensajeMatriz(transcripcion, {
+          mensajeDictado(transcripcion, {
             'Departamento / área': base.departamento,
             'Puesto de trabajo': base.puesto,
             Provincia: base.provincia,
@@ -264,6 +293,7 @@ export class VozService {
     return this.repo.find({
       where: {
         empresa: { id: empresaId },
+        ...this.empresas.autoria(u),
         ...(areaId && { area: { id: areaId } }),
       },
       relations: RELACIONES,
@@ -275,7 +305,7 @@ export class VozService {
   async obtener(u: UsuarioSesion, id: number) {
     const r = await this.repo.findOne({ where: { id }, relations: RELACIONES });
     if (!r) throw new NotFoundException('Matriz no encontrada');
-    this.empresas.asegurarAcceso(u, r.empresa.id);
+    this.empresas.asegurarRegistro(u, r, 'Matriz no encontrada');
     return r;
   }
 
@@ -291,8 +321,15 @@ export class VozService {
       archivo &&
       (archivo.mimetype.startsWith('audio/') ||
         archivo.mimetype === 'video/mp4' ||
-        archivo.mimetype === 'video/webm');
+        archivo.mimetype === 'video/webm' ||
+        // Algunos selectores de archivos no informan el tipo: se juzga por la extensión.
+        EXT_AUDIO.has(extension(archivo.originalname)));
     if (!ok)
       throw new BadRequestException('Adjunta un audio en el campo "audio"');
+    const ext = extension(archivo.originalname);
+    if (ext && !EXT_AUDIO.has(ext))
+      throw new BadRequestException(
+        `El formato .${ext} no se puede transcribir. Usa m4a, mp3, wav, ogg/opus (WhatsApp), webm o flac.`,
+      );
   }
 }

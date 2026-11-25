@@ -10,14 +10,16 @@ import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 import {
   esAdmin,
+  esGestor,
   FEATURES,
+  GESTION,
   PUBLICO,
   SOLO_ADMIN,
   UsuarioSesion,
 } from '../common/decorators';
 import { AuthService } from './auth.service';
 
-/** Guard global: valida el JWT, carga la sesión y aplica @SoloAdmin / @RequiereFeature. */
+/** Guard global: valida el JWT, carga la sesión y aplica @SoloAdmin / @Gestion / @RequiereFeature. */
 @Injectable()
 export class AuthGuard implements CanActivate {
   constructor(
@@ -52,6 +54,14 @@ export class AuthGuard implements CanActivate {
     if (this.reflector.getAllAndOverride<boolean>(SOLO_ADMIN, targets)) {
       throw new ForbiddenException(
         'Solo el administrador puede realizar esta acción',
+      );
+    }
+    if (
+      this.reflector.getAllAndOverride<boolean>(GESTION, targets) &&
+      !esGestor(sesion)
+    ) {
+      throw new ForbiddenException(
+        'Solo un administrador puede realizar esta acción',
       );
     }
     const requeridas = this.reflector.getAllAndOverride<string[]>(

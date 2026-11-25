@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  ForbiddenException,
   Delete,
   Get,
   Param,
@@ -14,6 +15,8 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import {
+  esAdmin,
+  Gestion,
   SoloAdmin,
   UsuarioActual,
   type UsuarioSesion,
@@ -56,12 +59,19 @@ export class EmpresasController {
     return this.svc.crear(dto, u.id);
   }
 
-  @SoloAdmin()
+  /** El ADMIN_EMPRESA edita los datos de sus empresas, pero no las activa ni desactiva. */
+  @Gestion()
   @Patch(':id')
   actualizar(
+    @UsuarioActual() u: UsuarioSesion,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ActualizarEmpresaDto,
   ) {
+    this.svc.asegurarAcceso(u, id);
+    if (!esAdmin(u) && dto.activo !== undefined)
+      throw new ForbiddenException(
+        'Solo el administrador general activa o desactiva empresas',
+      );
     return this.svc.actualizar(id, dto);
   }
 
@@ -72,73 +82,89 @@ export class EmpresasController {
     return this.svc.actualizar(id, { activo: false });
   }
 
-  @SoloAdmin()
+  @Gestion()
   @Post(':id/logo')
   @UseInterceptors(
     FileInterceptor('logo', { limits: { fileSize: 5 * 1024 * 1024 } }),
   )
   subirLogo(
+    @UsuarioActual() u: UsuarioSesion,
     @Param('id', ParseIntPipe) id: number,
     @UploadedFile() logo: Express.Multer.File,
   ) {
-    console.log('HereQ');
+    this.svc.asegurarAcceso(u, id);
     return this.svc.subirLogo(id, logo);
   }
 
-  // --- Áreas ---
+  // --- Áreas (y puestos): el ADMIN_EMPRESA, solo en sus empresas ---
 
-  @SoloAdmin()
+  @Gestion()
   @Post(':id/areas')
-  crearArea(@Param('id', ParseIntPipe) id: number, @Body() dto: CrearAreaDto) {
+  crearArea(
+    @UsuarioActual() u: UsuarioSesion,
+    @Param('id', ParseIntPipe) id: number,
+    @Body() dto: CrearAreaDto,
+  ) {
+    this.svc.asegurarAcceso(u, id);
     return this.svc.crearArea(id, dto);
   }
 
-  @SoloAdmin()
+  @Gestion()
   @Patch(':id/areas/:areaId')
   actualizarArea(
+    @UsuarioActual() u: UsuarioSesion,
     @Param('id', ParseIntPipe) id: number,
     @Param('areaId', ParseIntPipe) areaId: number,
     @Body() dto: ActualizarAreaDto,
   ) {
+    this.svc.asegurarAcceso(u, id);
     return this.svc.actualizarArea(id, areaId, dto);
   }
 
-  @SoloAdmin()
+  @Gestion()
   @Delete(':id/areas/:areaId')
   eliminarArea(
+    @UsuarioActual() u: UsuarioSesion,
     @Param('id', ParseIntPipe) id: number,
     @Param('areaId', ParseIntPipe) areaId: number,
   ) {
+    this.svc.asegurarAcceso(u, id);
     return this.svc.eliminarArea(id, areaId);
   }
 
   // --- Puestos ---
 
-  @SoloAdmin()
+  @Gestion()
   @Post(':id/puestos')
   crearPuesto(
+    @UsuarioActual() u: UsuarioSesion,
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: CrearPuestoDto,
   ) {
+    this.svc.asegurarAcceso(u, id);
     return this.svc.crearPuesto(id, dto);
   }
 
-  @SoloAdmin()
+  @Gestion()
   @Patch(':id/puestos/:puestoId')
   actualizarPuesto(
+    @UsuarioActual() u: UsuarioSesion,
     @Param('id', ParseIntPipe) id: number,
     @Param('puestoId', ParseIntPipe) puestoId: number,
     @Body() dto: ActualizarPuestoDto,
   ) {
+    this.svc.asegurarAcceso(u, id);
     return this.svc.actualizarPuesto(id, puestoId, dto);
   }
 
-  @SoloAdmin()
+  @Gestion()
   @Delete(':id/puestos/:puestoId')
   eliminarPuesto(
+    @UsuarioActual() u: UsuarioSesion,
     @Param('id', ParseIntPipe) id: number,
     @Param('puestoId', ParseIntPipe) puestoId: number,
   ) {
+    this.svc.asegurarAcceso(u, id);
     return this.svc.eliminarPuesto(id, puestoId);
   }
 }

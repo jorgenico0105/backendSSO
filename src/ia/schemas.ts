@@ -1,6 +1,7 @@
 // Esquemas de salida estructurada del agente (OpenAI Structured Outputs).
 // Todos los campos son obligatorios: Structured Outputs no admite opcionales.
 import { z } from 'zod';
+import { CAMPOS_INFORME } from '../analisis/accidentes/informe';
 import { CAMPOS_MATRIZ } from '../analisis/matriz/matriz';
 
 const tipo = z.enum(['acto', 'condicion']);
@@ -87,3 +88,45 @@ export const MatrizVozIA = z.object({
   resumen: z.string(),
 });
 export type MatrizVozIA = z.infer<typeof MatrizVozIA>;
+
+/**
+ * Informe de investigación de accidentes (RSE-04-00-02) por dictado. "" y [] significan
+ * "no se dijo"; el servicio los convierte en campos por llenar a mano.
+ */
+export const InformeAccidenteIA = z.object({
+  tipoEvento: z.enum(['accidente', 'incidente']),
+  investigadorNombre: z.string(),
+  investigadorCedula: z.string(),
+  investigadorCompetencia: z.string(),
+  fechaInvestigacion: z.string(),
+  entrevistados: z.array(z.string()),
+  tecnicas: z.string(),
+  trabajadores: z.array(
+    z.object({
+      nombre: z.string(),
+      fechaNacimiento: z.string(),
+      ocupacion: z.string(),
+      resultado: z.string(),
+    }),
+  ),
+  lugar: z.string(),
+  fecha: z.string(),
+  hora: z.string(),
+  introduccion: z.string(),
+  consecuencia: z.string(),
+  descripcion: z.string(),
+  actos: z.array(z.string()),
+  condiciones: z.array(z.string()),
+  factoresTrabajador: z.array(z.string()),
+  factoresTrabajo: z.array(z.string()),
+  causasBasicas: z.string(),
+  acciones: z.array(z.string()),
+  faltantes: z.array(
+    z.object({
+      campo: z.enum(CAMPOS_INFORME),
+      mensaje: z.string(),
+    }),
+  ),
+  resumen: z.string(),
+});
+export type InformeAccidenteIA = z.infer<typeof InformeAccidenteIA>;

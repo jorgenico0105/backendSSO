@@ -9,31 +9,35 @@ import {
   Post,
 } from '@nestjs/common';
 import {
-  SoloAdmin,
+  Gestion,
   UsuarioActual,
   type UsuarioSesion,
 } from '../common/decorators';
 import { ActualizarUsuarioDto, CrearUsuarioDto } from './usuario.dto';
 import { UsuariosService } from './usuarios.service';
 
-@SoloAdmin()
+/** El ADMIN_EMPRESA solo ve y gestiona usuarios de sus empresas (ver UsuariosService). */
+@Gestion()
 @Controller('usuarios')
 export class UsuariosController {
   constructor(private readonly svc: UsuariosService) {}
 
   @Get()
-  listar() {
-    return this.svc.listar();
+  listar(@UsuarioActual() u: UsuarioSesion) {
+    return this.svc.listar(u);
   }
 
   @Get(':id')
-  obtener(@Param('id', ParseIntPipe) id: number) {
-    return this.svc.obtener(id);
+  obtener(
+    @UsuarioActual() u: UsuarioSesion,
+    @Param('id', ParseIntPipe) id: number,
+  ) {
+    return this.svc.obtener(u, id);
   }
 
   @Post()
   crear(@Body() dto: CrearUsuarioDto, @UsuarioActual() u: UsuarioSesion) {
-    return this.svc.crear(dto, u.id);
+    return this.svc.crear(u, dto);
   }
 
   @Patch(':id')
@@ -42,7 +46,7 @@ export class UsuariosController {
     @Body() dto: ActualizarUsuarioDto,
     @UsuarioActual() u: UsuarioSesion,
   ) {
-    return this.svc.actualizar(id, dto, u.id);
+    return this.svc.actualizar(u, id, dto);
   }
 
   /** Baja lógica: el usuario queda inactivo y no puede iniciar sesión. */
@@ -51,6 +55,6 @@ export class UsuariosController {
     @Param('id', ParseIntPipe) id: number,
     @UsuarioActual() u: UsuarioSesion,
   ) {
-    return this.svc.actualizar(id, { activo: false }, u.id);
+    return this.svc.actualizar(u, id, { activo: false });
   }
 }
